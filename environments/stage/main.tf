@@ -2,15 +2,18 @@
 module "proxmox_template" {
   source = "../../modules/proxmox-template"
   
-  proxmox_node     = var.proxmox_node
-  template_vm_id   = var.template_vm_id
+  # Proxmox параметры
+  proxmox_node   = var.proxmox_node
+  template_vm_id = var.template_vm_id
+  
+  # API параметры для конвертации в шаблон
+  pm_api_url           = var.pm_api_url
+  pm_api_token_id      = var.pm_api_token_id
+  pm_api_token_secret  = var.pm_api_token_secret
+  
+  # Остальные параметры
   storage_pool     = var.storage_pool
   network_bridge   = var.network_bridge
-  
-  # Опционально переопределить параметры шаблона
-  template_disk_size = 30
-  template_cores     = 4
-  template_memory    = 4096
 }
 
 # 2. Создание рабочих ВМ из шаблона
@@ -20,13 +23,13 @@ module "ubuntu_vms" {
   depends_on = [module.proxmox_template] # Важно: дождаться создания шаблона
   
   # Метод создания: false = клонировать из шаблона
-  create_from_cloud_image = false # Теперь всегда false, используем шаблон
+  create_from_cloud_image = false
   
   # Параметры Proxmox
   proxmox_node = var.proxmox_node
   
   # ID созданного шаблона
-  template_vm_id = module.proxmox_template.template_vm_id
+  template_vm_id = var.template_vm_id
   
   # Конфигурация VM
   vms = var.vms
@@ -52,12 +55,11 @@ module "ubuntu_vms" {
   additional_tags = ["stage", "kubernetes"]
 }
 
-# Выводим ID созданного шаблона
-output "template_vm_id" {
-  value = module.proxmox_template.template_vm_id
+# Выводим информацию о созданных ресурсах
+output "template_created" {
+  value = "Template with ID ${var.template_vm_id} has been created"
 }
 
-# Выводим IP адреса созданных ВМ
 output "vm_ips" {
   value     = module.ubuntu_vms.vm_ip_addresses
   sensitive = true

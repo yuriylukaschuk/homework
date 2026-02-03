@@ -1,13 +1,15 @@
 # Создание шаблонной ВМ из Cloud Image
-resource "proxmox_virtual_environment_file" "cloud_image" {
+resource "proxmox_virtual_environment_download_file" "cloud_image" {
   content_type = "iso"
   datastore_id = var.storage_pool
   node_name    = var.proxmox_node
   
-  source_file {
-    path      = var.cloud_image_url
-    file_name = basename(var.cloud_image_url)
-  }
+  url          = var.cloud_image_url
+  file_name    = basename(var.cloud_image_url)
+  
+  # Опционально: проверка целостности файла
+  # checksum      = "sha256:..."
+  # checksum_type = "sha256"
 }
 
 # Создание VM из Cloud Image
@@ -22,7 +24,7 @@ resource "proxmox_virtual_environment_vm" "template_vm" {
     datastore_id = var.storage_pool
     interface    = "scsi0"
     size         = var.template_disk_size
-    file_id      = proxmox_virtual_environment_file.cloud_image.id
+    file_id      = proxmox_virtual_environment_download_file.cloud_image.id
     file_format  = "raw"
   }
   
@@ -65,7 +67,6 @@ EOT
   
   agent {
     enabled = true
-    type    = "virtio"
     timeout = "15m"
   }
   
@@ -73,9 +74,7 @@ EOT
     type = "l26"
   }
   
-  serial_device {
-    device = "socket"
-  }
+  serial_device {}
   
   started = false # Шаблон не запускаем
   
@@ -88,21 +87,34 @@ EOT
 }
 
 # Преобразование VM в шаблон
-resource "proxmox_virtual_environment_vm" "template_conversion" {
+resource "null_resource" "convert_to_template" {
   depends_on = [proxmox_virtual_environment_vm.template_vm]
   
-  node_name = var.proxmox_node
-  vm_id     = var.template_vm_id
+  triggers = {
+    vm_id = proxmox_virtual_environment_vm.template_vm.id
+  }
   
-  # Остановка VM перед конвертацией в шаблон
-  started = false
+  # Команда для конвертации VM в шаблон через Proxmox API
+  provisioner "local-exec" {
+    command = <<-EOT
+      curl -k -X POST \
+        -H "Authorization: PVEAPIToken=${var.pm_api_token_id}=${var.pm_api_token_secret}" \
+        "${var.pm_api_url}/api2/json/nodes/${var.proxmox_node}/qemu/${var.template_vm_id}/template"
+    EOT
+    
+    environment = {
+      PM_API_URL           = var.pm_api_url
+      PM_API_TOKEN_ID      = var.pm_api_token_id
+      PM_API_TOKEN_SECRET  = var.pm_api_token_secret
+      PROXMOX_NODE         = var.proxmox_node
+      TEMPLATE_VM_ID       = var.template_vm_id
+    }
+  }
   
-  # Преобразование в шаблон
-  template = true
-  
-  lifecycle {
-    ignore_changes = [
-      template # Избегаем циклических изменений
-    ]
+  # Ожидание завершения задачи
+  provisioner "local-exec" {
+    command = <<-EOT
+      sleep 30
+    EOT
   }
 }

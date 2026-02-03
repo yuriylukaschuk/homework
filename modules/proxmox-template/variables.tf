@@ -51,3 +51,22 @@ variable "network_bridge" {
   type        = string
   default     = "vmbr0"
 }
+
+# Добавляем переменные для API Proxmox (нужны для конвертации в шаблон)
+variable "pm_api_url" {
+  description = "URL API Proxmox"
+  type        = string
+  sensitive   = true
+}
+
+variable "pm_api_token_id" {
+  description = "ID токена API"
+  type        = string
+  sensitive   = true
+}
+
+variable "pm_api_token_secret" {
+  description = "Секрет токена API"
+  type        = string
+  sensitive   = true
+}

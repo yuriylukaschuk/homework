@@ -104,7 +104,6 @@ resource "proxmox_virtual_environment_vm" "virtual_machines" {
   
   agent {
     enabled = true
-    type    = "virtio"
     timeout = "5m"
   }
   
@@ -112,9 +111,7 @@ resource "proxmox_virtual_environment_vm" "virtual_machines" {
     type = "l26"
   }
   
-  serial_device {
-    device = "socket"
-  }
+  serial_device {}
   
   started = var.autostart_vms
   
