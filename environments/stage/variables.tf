@@ -64,18 +64,6 @@ variable "timeout" {
   default     = 600
 }
 
-variable "create_from_cloud_image" {
-  description = "Создавать ВМ из Cloud Image вместо клонирования из шаблона"
-  type        = bool
-  default     = false
-}
-
-variable "cloud_image_url" {
-  description = "URL Cloud Image Ubuntu (используется если create_from_cloud_image = true)"
-  type        = string
-  default     = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
-}
-
 # Дополнительные настройки модуля
 variable "autostart_vms" {
   description = "Автоматически запускать VM после создания"

@@ -1,4 +1,4 @@
-# Модуль может создавать либо VM из шаблона, либо напрямую из Cloud Image
+# Модуль для создания ВМ только через клонирование шаблона
 
 # Cloud-init для каждой VM
 resource "proxmox_virtual_environment_file" "cloud_init" {
@@ -28,6 +28,7 @@ packages:
 runcmd:
   - systemctl enable qemu-guest-agent
   - systemctl start qemu-guest-agent
+  - hostnamectl set-hostname ${each.key}
 package_update: true
 package_upgrade: true
 ssh_pwauth: false
@@ -40,9 +41,11 @@ EOT
   }
 }
 
-# Динамическое создание ВМ в зависимости от выбранного метода
+# Создание ВМ только через клонирование шаблона
 resource "proxmox_virtual_environment_vm" "virtual_machines" {
   for_each = var.vms
+  
+  depends_on = [proxmox_virtual_environment_file.cloud_init]
   
   node_name = var.proxmox_node
   vm_id     = each.value.vmid
@@ -50,25 +53,11 @@ resource "proxmox_virtual_environment_vm" "virtual_machines" {
   pool_id   = var.vm_pool
   tags      = concat(["terraform", "auto-created"], var.additional_tags)
   
-  # Метод 1: Клонирование из шаблона
-  dynamic "clone" {
-    for_each = var.create_from_cloud_image ? [] : [1]
-    content {
-      vm_id = var.template_vm_id
-      full  = true
-    }
-  }
-  
-  # Метод 2: Создание из Cloud Image
-  dynamic "disk" {
-    for_each = var.create_from_cloud_image ? [1] : []
-    content {
-      datastore_id = var.storage_pool
-      interface    = "scsi0"
-      size         = each.value.disk_size
-      file_format  = "raw"
-      discard      = "on"
-    }
+  # Клонирование из шаблона
+  clone {
+    vm_id = var.template_vm_id
+    full  = true
+    retries = 3 # Повторные попытки при ошибках
   }
   
   # Общие параметры CPU и памяти
@@ -83,16 +72,13 @@ resource "proxmox_virtual_environment_vm" "virtual_machines" {
     dedicated = each.value.memory
   }
   
-  # Диск для клонирования (если не создаём из Cloud Image)
-  dynamic "disk" {
-    for_each = var.create_from_cloud_image ? [] : [1]
-    content {
-      datastore_id = var.storage_pool
-      interface    = "scsi0"
-      size         = each.value.disk_size
-      file_format  = "raw"
-      discard      = "on"
-    }
+  # Изменение размера диска после клонирования
+  disk {
+    datastore_id = var.storage_pool
+    interface    = "scsi0"
+    size         = each.value.disk_size
+    file_format  = "raw"
+    discard      = "on"
   }
   
   network_device {
@@ -119,7 +105,7 @@ resource "proxmox_virtual_environment_vm" "virtual_machines" {
   agent {
     enabled = true
     type    = "virtio"
-    timeout = var.create_from_cloud_image ? "15m" : "5m"
+    timeout = "5m"
   }
   
   operating_system {
@@ -135,7 +121,8 @@ resource "proxmox_virtual_environment_vm" "virtual_machines" {
   lifecycle {
     ignore_changes = [
       initialization[0].user_data_file_id,
-      tags
+      tags,
+      clone[0].vm_id # Игнорируем изменения ID шаблона
     ]
   }
 }
