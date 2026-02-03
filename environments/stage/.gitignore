@@ -1,0 +1,16 @@
+# Игнорируем секретные файлы
+*.tfvars
+
+# Но разрешаем примеры
+!*.tfvars.example
+
+# Игнорируем состояние Terraform
+*.tfstate
+*.tfstate.*
+
+# Игнорируем кэш провайдеров
+.terraform/
+.terraform.lock.hcl
+
+# Логи
+*.log

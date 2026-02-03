@@ -1,0 +1,361 @@
+# ==============================
+# ФАЙЛ: main.tf
+# Основная конфигурация ресурсов
+# ==============================
+
+# Блок 1: Создание файлов cloud-init для каждой ВМ
+# --------------------------------------------------
+resource "proxmox_virtual_environment_file" "cloud_init" {
+  # 1. for_each - это ЦИКЛ в Terraform
+  #    Проходит по всем элементам переменной var.vms
+  #    var.vms = {
+  #      "vm-1" = {...},
+  #      "vm-2" = {...},
+  #      "vm-3" = {...}
+  #    }
+  #    Для каждого элемента создаёт ОТДЕЛЬНЫЙ ресурс
+  for_each = var.vms
+  
+  
+  # 2. content_type - тип содержимого файла
+  #    "snippets" - специальный тип для Proxmox
+  #    Это означает, что файл будет храниться в хранилище snippets
+  content_type = "snippets"
+  
+  
+  # 3. datastore_id - где хранить файл
+  #    "local" - локальное хранилище Proxmox ноды
+  #    Можно указать: "local", "local-lvm", "nfs-storage" и т.д.
+  datastore_id = "local"
+  
+  
+  # 4. node_name - на какой ноде Proxmox создавать файл
+  #    var.proxmox_node = "pve" (из variables.tf)
+  #    В кластере можно указать конкретную ноду: "pve1", "pve2"
+  node_name    = var.proxmox_node
+  
+  
+  # 5. Вложенный блок source_raw - содержимое файла
+  #    Это фактический YAML файл cloud-init
+  source_raw {
+    
+    # 6. data - содержимое файла в формате HEREDOC
+    #    <<-EOT ... EOT - многострочная строка
+    #    Отступы игнорируются благодаря <<- (а не <<)
+    data = <<-EOT
+      #cloud-config  # Магическая строка для cloud-init
+      
+      # 7. hostname - имя хоста ВМ
+      #    each.key - ключ из цикла for_each ("vm-1", "vm-2", "vm-3")
+      hostname: ${each.key}
+      
+      # 8. manage_etc_hosts - автоматически управлять /etc/hosts
+      manage_etc_hosts: true
+      
+      # 9. users - список пользователей для создания
+      users:
+        - name: ubuntu  # Имя пользователя по умолчанию для Ubuntu
+          
+          # 10. ssh-authorized-keys - SSH ключи для доступа
+          #     ${file("~/.ssh/id_ed25519.pub")} - функция file() читает файл
+          #     Вставляет содержимое файла с публичным SSH ключом
+          ssh-authorized-keys:
+            - ${file("~/.ssh/id_ed25519.pub")}
+          
+          # 11. sudo - права sudo для пользователя
+          #     ['ALL=(ALL) NOPASSWD:ALL'] - полные права без пароля
+          sudo: ['ALL=(ALL) NOPASSWD:ALL']
+          
+          # 12. groups - в какие группы добавить пользователя
+          groups: sudo  # Группа sudo для административных прав
+          
+          # 13. shell - оболочка пользователя
+          shell: /bin/bash
+          
+          # 14. lock_passwd - блокировать парольный доступ?
+          #     false - разрешить вход по паролю (лучше использовать false с ключами)
+          lock_passwd: false
+          
+          # 15. passwd - хешированный пароль
+          #     $6$... - хеш пароля SHA-512
+          #     Для генерации: mkpasswd --method=SHA-512 --rounds=4096
+          passwd: "$6$rounds=4096$your_hashed_password$password_hash"
+      
+      # 16. packages - пакеты для установки при первом запуске
+      packages:
+        - qemu-guest-agent  # Агент для интеграции с Proxmox
+        - curl              # Утилита для работы с HTTP
+        - wget              # Утилита для загрузки файлов
+      
+      # 17. runcmd - команды для выполнения при первом запуске
+      runcmd:
+        - systemctl enable qemu-guest-agent  # Включить автозапуск агента
+        - systemctl start qemu-guest-agent   # Запустить агент сразу
+      
+      # 18. package_update - обновить информацию о пакетах
+      package_update: true
+      
+      # 19. package_upgrade - обновить все пакеты
+      package_upgrade: true
+      
+      # 20. ssh_pwauth - разрешить аутентификацию по паролю SSH?
+      #     false - только по ключам (рекомендуется)
+      ssh_pwauth: false
+      
+      # 21. disable_root - отключить вход root
+      disable_root: true
+      
+      # 22. timezone - временная зона
+      timezone: Europe/Moscow
+    EOT
+    
+    
+    # 23. file_name - имя файла в хранилище snippets
+    #     Формируется динамически: "cloud-init-vm-1.yml" и т.д.
+    file_name = "cloud-init-${each.key}.yml"
+  }
+}
+
+# Блок 2: Создание виртуальных машин
+# ------------------------------------
+resource "proxmox_virtual_environment_vm" "k8s_node" {
+  # 24. for_each - снова цикл по всем ВМ
+  #     Создаст 3 отдельных ресурса ВМ
+  for_each = var.vms
+  
+  
+  # 25. node_name - на какой ноде создавать ВМ
+  node_name = var.proxmox_node
+  
+  
+  # 26. vm_id - уникальный ID ВМ в Proxmox
+  #     each.value - значение из var.vms для текущего ключа
+  #     each.value.vmid = 110, 111, 112
+  #     ID должны быть уникальными в пределах кластера
+  vm_id     = each.value.vmid
+  
+  
+  # 27. name - имя ВМ (отображается в Proxmox GUI)
+  #     each.key = "vm-1", "vm-2", "vm-3"
+  name      = each.key
+  
+  
+  # 28. pool_id - в какой пул поместить ВМ
+  #     var.vm_pool = "terraform-pool" (пул, который вы создали)
+  #     Пул - это логическая группа ВМ
+  pool_id   = var.vm_pool
+  
+  
+  # 29. tags - метки для ВМ
+  #     Метки помогают фильтровать и организовывать ВМ
+  #     ["terraform", "auto-created"] - можно фильтровать в Proxmox GUI
+  tags      = ["terraform", "auto-created"]
+  
+  
+  # 30. Вложенный блок clone - клонирование из шаблона
+  #     Вместо создания ВМ с нуля, клонируем из готового шаблона
+  clone {
+    
+    # 31. vm_id - ID шаблонной ВМ
+    #     var.template_vm_id = 9000 (из variables.tf)
+    #     Это должна быть ВМ, преобразованная в шаблон
+    vm_id = var.template_vm_id
+  }
+  
+  
+  # 32. Вложенный блок cpu - настройки процессора
+  cpu {
+    
+    # 33. cores - количество ядер
+    #     each.value.cores = 2 (из var.vms)
+    cores    = each.value.cores
+    
+    
+    # 34. sockets - количество сокетов
+    #     Обычно 1, можно эмулировать многопроцессорную систему
+    sockets  = 1
+    
+    
+    # 35. type - тип процессора для эмуляции
+    #     "host" - использовать возможности хостового CPU
+    #     Альтернативы: "kvm64", "qemu64", "host" (рекомендуется)
+    type     = "host"
+    
+    
+    # 36. numa - включить NUMA (Non-Uniform Memory Access)
+    #     false - отключить (для простых ВМ)
+    #     true - включить (для высокопроизводительных ВМ)
+    numa     = false
+  }
+  
+  
+  # 37. Вложенный блок memory - настройки памяти
+  memory {
+    
+    # 38. dedicated - выделенная память в МБ
+    #     each.value.memory = 2048 (2 ГБ)
+    #     Память выделяется сразу, не Thin provisioning
+    dedicated = each.value.memory
+  }
+  
+  
+  # 39. Вложенный блок disk - настройки диска
+  disk {
+    
+    # 40. datastore_id - хранилище для диска
+    #     var.storage_pool = "hdd-thin" (из variables.tf)
+    #     Thin provisioning: место выделяется по мере записи
+    datastore_id = var.storage_pool
+    
+    
+    # 41. file_id - ссылка на файл cloud-init
+    #     proxmox_virtual_environment_file.cloud_init[each.key].id
+    #     Это МАГИЯ Terraform: ссылка на другой ресурс!
+    #     [each.key] - получаем ID конкретного файла cloud-init
+    #     .id - атрибут ресурса (автоматически генерируется)
+    #     Terraform сам понимает порядок создания:
+    #     1. Сначала создаётся файл cloud-init
+    #     2. Потом создаётся ВМ с ссылкой на этот файл
+    file_id      = "${proxmox_virtual_environment_file.cloud_init[each.key].id}"
+    
+    
+    # 42. interface - тип интерфейса диска
+    #     "scsi0" - первый SCSI диск
+    #     Альтернативы: "ide0", "sata0", "virtio0"
+    #     VirtIO быстрее, но требует драйверов в гостевой ОС
+    interface    = "scsi0"
+    
+    
+    # 43. size - размер диска
+    #     each.value.disk_size = "20G" (20 Гигабайт)
+    #     Формат: "10G", "100G", "1T"
+    size         = each.value.disk_size
+    
+    
+    # 44. file_format - формат файла диска
+    #     "raw" - raw образ (рекомендуется для производительности)
+    #     "qcow2" - qcow2 (поддерживает снапшоты)
+    #     "vmdk" - формат VMware
+    file_format  = "raw"
+    
+    
+    # 45. discard - поддержка TRIM/UNMAP
+    #     "on" - ВМ может сообщать хосту о неиспользуемых блоках
+    #     Важно для thin provisioning и SSD
+    discard      = "on"
+  }
+  
+  
+  # 46. Вложенный блок network_device - сетевая карта
+  network_device {
+    
+    # 47. bridge - к какому мосту подключить
+    #     var.network_bridge = "vmbr0" (обычно это основной мост)
+    #     vmbr0 - создаётся при установке Proxmox
+    bridge = var.network_bridge
+    
+    
+    # 48. model - модель сетевой карты
+    #     "virtio" - виртуальное устройство VirtIO (рекомендуется)
+    #     Альтернативы: "e1000", "rtl8139", "vmxnet3"
+    #     VirtIO требует драйверов, но даёт лучшую производительность
+    model  = "virtio"
+  }
+  
+  
+  # 49. Вложенный блок initialization - облачная инициализация
+  initialization {
+    
+    # 50. datastore_id - где искать файл cloud-init
+    datastore_id      = "local"
+    
+    
+    # 51. user_data_file_id - ссылка на файл cloud-init
+    #     Та же ссылка, что и в диске, но для cloud-init данных
+    user_data_file_id = proxmox_virtual_environment_file.cloud_init[each.key].id
+    
+    
+    # 52. Вложенный блок ip_config - настройки IP
+    ip_config {
+      
+      # 53. Вложенный блок ipv4 - настройки IPv4
+      ipv4 {
+        
+        # 54. address - IP адрес и маска
+        #     each.value.ip_address = "10.10.10.110"
+        #     "/24" - маска подсети (255.255.255.0)
+        #     Формат: "IP/маска"
+        address = "${each.value.ip_address}/24"
+        
+        
+        # 55. gateway - шлюз по умолчанию
+        #     var.gateway = "10.10.10.1" (из variables.tf)
+        gateway = var.gateway
+      }
+    }
+    
+    
+    # 56. Вложенный блок dns - настройки DNS
+    dns {
+      
+      # 57. servers - DNS серверы
+      #     ["8.8.8.8", "1.1.1.1"] - Google и Cloudflare DNS
+      #     Можно указать внутренние: ["10.10.10.1"]
+      servers = ["8.8.8.8", "1.1.1.1"]
+    }
+  }
+  
+  
+  # 58. Вложенный блок agent - QEMU Guest Agent
+  agent {
+    
+    # 59. enabled - включить ли агент
+    #     true - включён (обязательно для корректной работы)
+    #     Агент позволяет Proxmox получать IP адрес, управлять ВМ
+    enabled = true
+    
+    
+    # 60. type - тип интерфейса агента
+    #     "virtio" - использовать VirtIO канал (рекомендуется)
+    #     Альтернатива: "isa" (устаревший)
+    type    = "virtio"
+  }
+  
+  
+  # 61. Вложенный блок operating_system - тип ОС
+  operating_system {
+    
+    # 62. type - тип операционной системы
+    #     "l26" - Linux с ядром 2.6+ (для Ubuntu/Debian/CentOS)
+    #     Другие варианты: "windows", "other"
+    type = "l26"
+  }
+  
+  
+  # 63. started - запускать ли ВМ сразу после создания
+  #     true - запустить сразу (ВМ начнёт загружаться)
+  #     false - оставить выключенной
+  started = true
+  
+  
+  # 64. Вложенный блок lifecycle - жизненный цикл ресурса
+  #     Особые правила для управления ресурсом
+  lifecycle {
+    
+    # 65. ignore_changes - какие изменения игнорировать
+    #     Terraform обычно хочет вернуть всё к состоянию в коде
+    #     Но некоторые вещи лучше не трогать после создания
+    ignore_changes = [
+      
+      # 66. Игнорировать изменения в cloud-init файле
+      #     Если вручную изменить cloud-init в Proxmox GUI,
+      #     Terraform не будет пытаться вернуть обратно
+      initialization[0].user_data_file_id,
+      
+      # 67. Игнорировать изменения тегов из Proxmox GUI
+      #     Если вручную добавить теги через интерфейс,
+      #     Terraform не будет их удалять
+      tags
+    ]
+  }
+}
