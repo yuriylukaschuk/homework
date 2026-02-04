@@ -121,6 +121,12 @@ variable "gateway" {
   default     = "10.10.10.1"
 }
 
+variable "dns_servers" {
+  description = "DNS серверы для ВМ"
+  type        = list(string)
+  default     = ["8.8.8.8", "1.1.1.1"]
+}
+
 # Настройки шаблона ВМ
 variable "template_vm_id" {
   description = "ID шаблона ВМ для клонирования"
@@ -162,3 +168,16 @@ variable "vms" {
     }
   }
 }
+
+variable "cloud_image_url" {
+  description = "URL Cloud Image для создания шаблона"
+  type        = string
+  default     = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+}
+
+variable "timezone" {
+  description = "Часовой пояс для ВМ"
+  type        = string
+  default     = "Europe/Moscow"
+}
+

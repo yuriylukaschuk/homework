@@ -108,3 +108,35 @@ variable "additional_tags" {
   type        = list(string)
   default     = []
 }
+
+# Добавьте в конец файла:
+
+variable "cloud_image_url" {
+  description = "URL Cloud Image для создания шаблона"
+  type        = string
+  default     = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+}
+
+variable "template_disk_size" {
+  description = "Размер диска шаблона (в GB)"
+  type        = number
+  default     = 20
+}
+
+variable "template_cores" {
+  description = "Количество ядер шаблона"
+  type        = number
+  default     = 2
+}
+
+variable "template_memory" {
+  description = "Память шаблона (в MB)"
+  type        = number
+  default     = 2048
+}
+
+variable "create_template" {
+  description = "Создать шаблонную VM"
+  type        = bool
+  default     = false
+}
