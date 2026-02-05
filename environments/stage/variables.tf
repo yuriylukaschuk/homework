@@ -52,10 +52,14 @@ variable "proxmox_ssh_password" {
   default     = "" # Пароль пользователя terraform-svc
 }
 
-variable "proxmox_ssh_private_key_path" {
+variable "proxmox_ssh_public_key" {
   description = "Путь к приватному SSH ключу для доступа к Proxmox"
   type        = string
-  default     = "/root/.ssh/id_ed25519_proxmox"
+}
+
+variable "proxmox_ssh_private_key" {
+  description = "Путь к приватному SSH ключу для доступа к Proxmox"
+  type        = string
 }
 
 variable "timeout" {

@@ -27,7 +27,7 @@ module "create_template" {
   network_cidr_suffix     = tonumber(split("/", var.network_cidr)[1])
   dns_servers             = var.dns_servers
   vm_admin_username       = var.vm_admin_username
-  ssh_public_key          = file("/root/.ssh/id_ed25519.pub")
+  ssh_public_key          = file(var.proxmox_ssh_public_key)
   timezone                = var.timezone
   autostart_vms           = true
   additional_tags         = []
@@ -64,7 +64,7 @@ module "ubuntu_vms" {
 
   # Cloud-init параметры
   vm_admin_username = var.vm_admin_username
-  ssh_public_key    = file("/root/.ssh/id_ed25519.pub")
+  ssh_public_key    = file(var.proxmox_ssh_public_key)
   timezone          = var.timezone
 
   # Дополнительные настройки
