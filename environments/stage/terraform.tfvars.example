@@ -1,0 +1,9 @@
+# Пример файла переменных
+# Скопируйте этот файл в terraform.tfvars и заполните реальными значениями
+
+pm_api_url          = "https://10.10.10.1:8006/api2/json"
+pm_api_token_id     = "ВАШ_TOKEN_ID_ЗДЕСЬ"
+pm_api_token_secret = "ВАШ_TOKEN_SECRET_ЗДЕСЬ"
+
+proxmox_node        = "pve"
+storage_pool        = "hdd-thin"

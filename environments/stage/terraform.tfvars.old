@@ -1,0 +1,29 @@
+# terraform.tfvars
+# Этот файл содержит ФАКТИЧЕСКИЕ ЗНАЧЕНИЯ переменных
+# НИКОГДА не коммитить этот файл в Git!
+
+pm_api_url          = "https://10.10.10.1:8006/api2/json"
+pm_api_token_id     = "root@pam!root-token"
+pm_api_token_secret = "94b669d1-41e0-45e6-923e-4093822e1872"
+pm_tls_insecure     = true
+
+# SSH
+proxmox_ssh_username    = "root"
+proxmox_ssh_password    = "ghvbqMN7as"
+proxmox_ssh_public_key  = "~/.ssh/id_ed25519.pub"
+proxmox_ssh_private_key = "~/.ssh/id_ed25519"
+
+
+# Несекретные переменные тоже можно здесь определить
+proxmox_node   = "pve"
+storage_pool   = "hdd-thin"
+vm_pool        = "terraform-pool"
+network_bridge = "vmbr10"
+network_cidr   = "10.10.10.0/24"
+gateway        = "10.10.10.1"
+
+# ID шаблона для клонирования (если create_from_cloud_image = false)
+template_vm_id = 9000
+
+# Пользователь ВМ
+vm_admin_username = "admin"

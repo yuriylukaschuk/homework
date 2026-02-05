@@ -1,0 +1,25 @@
+# .gitignore в корне проекта
+# Игнорируем все секретные файлы
+
+# Файлы с переменными (секреты)
+*.tfvars
+*.tfvars.json
+
+# Исключение для примеров
+!*.tfvars.example
+
+# Файлы состояния Terraform
+*.tfstate
+*.tfstate.*
+
+# Каталоги
+.terraform/
+.terraform.lock.hcl
+
+# Логи
+*.log
+*.pid
+
+# IDE файлы
+.vscode/
+.idea/
