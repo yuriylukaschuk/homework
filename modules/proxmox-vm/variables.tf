@@ -109,12 +109,22 @@ variable "additional_tags" {
   default     = []
 }
 
-# Добавьте в конец файла:
-
-variable "cloud_image_url" {
-  description = "URL Cloud Image для создания шаблона"
+variable "iso_storage" {
+  description = "Хранилище для ISO образов"
   type        = string
-  default     = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
+  default     = "local"
+}
+
+variable "cloud_image_file" {
+  description = "Cloud Image файл в хранилище Proxmox"
+  type        = string
+  default     = "local:iso/jammy-server-cloudimg-amd64.img"
+}
+
+variable "use_local_cloud_image" {
+  description = "Использовать локальный Cloud Image вместо скачивания"
+  type        = bool
+  default     = true
 }
 
 variable "template_disk_size" {

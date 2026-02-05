@@ -62,23 +62,17 @@ variable "proxmox_ssh_private_key" {
   type        = string
 }
 
+################## Обычные (не секретные) переменные ##################
+
 variable "timeout" {
   description = "ID шаблона ВМ для клонирования"
   type        = number
   default     = 600
 }
 
-# Дополнительные настройки модуля
-variable "autostart_vms" {
-  description = "Автоматически запускать VM после создания"
-  type        = bool
-  default     = true
-}
-
 variable "additional_cloud_config" {
   description = "Дополнительная конфигурация cloud-init"
   type        = string
-  default     = ""
 }
 
 variable "additional_tags" {
@@ -95,9 +89,16 @@ variable "proxmox_node" {
 }
 
 variable "storage_pool" {
-  description = "Хранилище для ВМ"
+  description = "Хранилище для дисков ВМ (должно поддерживать images)"
   type        = string
   default     = "hdd-thin"
+}
+
+# Дополнительные настройки модуля
+variable "autostart_vms" {
+  description = "Автоматически запускать VM после создания"
+  type        = bool
+  default     = true
 }
 
 variable "vm_pool" {
@@ -110,25 +111,26 @@ variable "vm_pool" {
 variable "network_bridge" {
   description = "Сетевой мост для ВМ"
   type        = string
-  default     = "vmbr0"
 }
 
 variable "network_cidr" {
   description = "CIDR внутренней сети"
   type        = string
-  default     = "10.10.10.0/24"
 }
 
 variable "gateway" {
   description = "Шлюз по умолчанию"
   type        = string
-  default     = "10.10.10.1"
 }
 
 variable "dns_servers" {
   description = "DNS серверы для ВМ"
   type        = list(string)
-  default     = ["8.8.8.8", "1.1.1.1"]
+}
+
+variable "timezone" {
+  description = "Часовой пояс для ВМ"
+  type        = string
 }
 
 # Настройки шаблона ВМ
@@ -142,46 +144,49 @@ variable "template_vm_id" {
 variable "vms" {
   description = "Конфигурация создаваемых ВМ"
   type = map(object({
-    vmid       = number
-    cores      = number
-    memory     = number
-    disk_size  = number
-    ip_address = string
+    vmid       = optional(number, 110)
+    cores      = optional(number, 1)
+    memory     = optional(number, 1024)
+    disk_size  = optional(number, 20)
+    ip_address = optional(string, "10.10.10.110")
   }))
-  default = {
-    "vm-1" = {
-      vmid       = 110
-      cores      = 1
-      memory     = 1024
-      disk_size  = 20
-      ip_address = "10.10.10.110"
-    }
-    "vm-2" = {
-      vmid       = 111
-      cores      = 1
-      memory     = 1024
-      disk_size  = 20
-      ip_address = "10.10.10.111"
-    }
-    "vm-3" = {
-      vmid       = 112
-      cores      = 1
-      memory     = 1024
-      disk_size  = 20
-      ip_address = "10.10.10.112"
-    }
-  }
+  default = {}
 }
 
-variable "cloud_image_url" {
-  description = "URL Cloud Image для создания шаблона"
+variable "iso_storage" {
+  description = "Хранилище для ISO образов"
   type        = string
-  default     = "https://cloud-images.ubuntu.com/jammy/current/jammy-server-cloudimg-amd64.img"
 }
 
-variable "timezone" {
-  description = "Часовой пояс для ВМ"
+variable "cloud_image_file" {
+  description = "Cloud Image файл в хранилище Proxmox"
   type        = string
-  default     = "Europe/Moscow"
 }
 
+variable "snippets_datastore_id" {
+  description = "Хранилище для cloud-init snippets"
+  type        = string
+}
+
+variable "use_local_cloud_image" {
+  description = "Использовать локальный Cloud Image вместо скачивания"
+  type        = bool
+}
+
+variable "local_cloud_image_storage" {
+  description = "Хранилище где находится локальный Cloud Image"
+  type        = string
+  default     = "local"
+}
+
+variable "create_template" {
+  description = "Создавать шаблонную VM"
+  type        = bool
+  default     = false
+}
+
+variable "create_from_cloud_image" {
+  description = "Создавать ВМ из Cloud Image вместо клонирования"
+  type        = bool
+  default     = false
+}

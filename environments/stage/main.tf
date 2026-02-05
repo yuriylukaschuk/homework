@@ -7,31 +7,35 @@ module "create_template" {
   # Метод создания VM (true = из Cloud Image, false = клонировать)
   create_from_cloud_image = false
 
+  # Использовать локальный образ
+  use_local_cloud_image = var.use_local_cloud_image
+  cloud_image_file      = var.cloud_image_file
+
   # Параметры шаблона
   proxmox_node          = var.proxmox_node
   template_vm_id        = var.template_vm_id
   storage_pool          = var.storage_pool
-  snippets_datastore_id = "local"
+  iso_storage           = var.iso_storage
+  snippets_datastore_id = var.snippets_datastore_id
   network_bridge        = var.network_bridge
 
   # Параметры шаблонной VM
   template_disk_size = 20
   template_cores     = 1
   template_memory    = 1024
-  cloud_image_url    = var.cloud_image_url
 
   # Остальные параметры (обязательные, но пустые)
   vms                     = {}
-  vm_pool                 = ""
+  vm_pool                 = var.vm_pool
   gateway                 = var.gateway
   network_cidr_suffix     = tonumber(split("/", var.network_cidr)[1])
   dns_servers             = var.dns_servers
   vm_admin_username       = var.vm_admin_username
   ssh_public_key          = file(var.proxmox_ssh_public_key)
   timezone                = var.timezone
-  autostart_vms           = true
-  additional_tags         = []
-  additional_cloud_config = ""
+  autostart_vms           = var.autostart_vms
+  additional_tags         = var.additional_tags
+  additional_cloud_config = var.additional_cloud_config
 }
 
 # Этап 2: Создание рабочих ВМ из шаблона
@@ -41,6 +45,10 @@ module "ubuntu_vms" {
   # Режим создания рабочих ВМ через клонирование
   create_template         = false
   create_from_cloud_image = false
+
+  # Использовать локальный образ
+  use_local_cloud_image = var.use_local_cloud_image
+  cloud_image_file      = var.cloud_image_file
 
   # Параметры Proxmox
   proxmox_node = var.proxmox_node
@@ -53,7 +61,8 @@ module "ubuntu_vms" {
 
   # Storage параметры
   storage_pool          = var.storage_pool
-  snippets_datastore_id = "local"
+  iso_storage           = var.iso_storage
+  snippets_datastore_id = var.snippets_datastore_id
   vm_pool               = var.vm_pool
 
   # Сетевые параметры
@@ -68,8 +77,8 @@ module "ubuntu_vms" {
   timezone          = var.timezone
 
   # Дополнительные настройки
-  autostart_vms   = true
-  additional_tags = ["stage", "kubernetes"]
+  autostart_vms   = var.autostart_vms
+  additional_tags = var.additional_tags
 }
 
 # Выводы
@@ -88,8 +97,4 @@ output "vm_ips" {
 
 output "vm_ids" {
   value = module.ubuntu_vms.vm_ids
-}
-
-output "cloud_init_file_ids" {
-  value = module.ubuntu_vms.cloud_init_file_ids
 }
