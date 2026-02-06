@@ -6,30 +6,30 @@ git init
 репозитория (.git/config)
 
 [core]
-	repositoryformatversion = 0 - Версия формата репозитория: оригинальный формат 
-	filemode = false - Отслеживание прав доступа к файлам: игнорирует изменения прав доступа (папка создана в Windows)
-	bare = false - Тип репозитория: рабочий репозиторий (есть рабочая директория с файлами)
-	logallrefupdates = true - Логирование обновлений ссылок: Git записывает логи для всех обновлений ссылок (веток, тегов)
-	symlinks = false - Обработка символических ссылок: не поддерживает (на Windows)
-	ignorecase = true - Чувствительность к регистру имен файлов: игнорирует регистр в именах файлов (Windows/Mac)
+	repositoryformatversion = 0 - Версия формата репозитория: оригинальный формат  
+	filemode = false - Отслеживание прав доступа к файлам: игнорирует изменения прав доступа (папка создана в Windows)  
+	bare = false - Тип репозитория: рабочий репозиторий (есть рабочая директория с файлами)  
+	logallrefupdates = true - Логирование обновлений ссылок: Git записывает логи для всех обновлений ссылок (веток, тегов)  
+	symlinks = false - Обработка символических ссылок: не поддерживает (на Windows)  
+	ignorecase = true - Чувствительность к регистру имен файлов: игнорирует регистр в именах файлов (Windows/Mac)  
 
 
 Настройте имя и email пользователя для текущего репозитория
 
-git config user.name "Yuriy Lukaschuk"
+git config user.name "Yuriy Lukaschuk"  
 git config user.email "yuriy.lukaschuk@gmail.com"
 
 Убедитесь, что файл .git/config изменился соответствующим образом
 
-[core]
-	repositoryformatversion = 0
-	filemode = false
-	bare = false
-	logallrefupdates = true
-	symlinks = false
-	ignorecase = true
-[user]
-	name = Yuriy Lukaschuk
+[core]  
+	repositoryformatversion = 0  
+	filemode = false  
+	bare = false  
+	logallrefupdates = true  
+	symlinks = false  
+	ignorecase = true  
+[user]  
+	name = Yuriy Lukaschuk  
 	email = yuriy.lukaschuk@gmail.com
 
 
@@ -39,16 +39,16 @@ git config user.email "yuriy.lukaschuk@gmail.com"
 
 Клонирование:
 
-git remote add origin https://github.com/yuriylukaschuk/homework.git
+git remote add origin https://github.com/yuriylukaschuk/homework.git  
 git branch -M main
 
 
-2. Скачайте файлы по ссылке:
+2. Скачайте файлы по ссылке:  
 https://drive.google.com/uc?export=download&confirm=no_antivirus&id=1B_b5mg7rRSKSNqwuDb1hGVYQQpHsEc1J
 
 3. Затем распакуйте архив и поместите в каталог с инициированным гит
 
-5. Сделайте 1й коммит:
+5. Сделайте 1й коммит:  
  Сделайте файлы папки wild_animals отслеживаемыми
 
  git add wild_animals
